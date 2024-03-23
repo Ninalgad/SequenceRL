@@ -18,7 +18,7 @@ from networks.cnn import ConvNetwork
 def run_n_selfplay(
         n: int, actor: Actor,
         replay_buffer: ReplayBuffer, max_turns: int = 1000):
-    for _ in tqdm(range(n)):
+    for _ in range(n):
         # Create a new instance of the environment.
         env = SequenceGameEnv()
         episode = []
@@ -51,9 +51,12 @@ def save(model_path, algo, replay_buffer, meta=None):
             np.array(algo.optimizer.variables, dtype='object'))
 
     # save replays
+    # save replays
     with open(model_path + "replay_buffer.pkl", 'wb') as f:
-        replay_buffer.config = None
+        config = replay_buffer.config
+        replay_buffer.config = None  # can't pickle config
         pickle.dump(replay_buffer, f, protocol=pickle.HIGHEST_PROTOCOL)
+    replay_buffer.config = config
 
     # save training info
     if meta:
@@ -77,6 +80,7 @@ def main(model_path, resume):
         # load algo state
         algo.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 90)))
         algo.model.load_weights(resume + 'model.h5')
+        algo.optimizer.build(algo.model.trainable_variables)
         algo.optimizer.set_weights(np.load(resume + 'opt.npy', allow_pickle=True))
 
         # load training info
@@ -90,11 +94,12 @@ def main(model_path, resume):
 
     learner = DQNLearner(algo, config, replay_buffer)
     losses = []
-    while True:
+    max_epochs = int(config.training_steps // config.training_steps_per_epoch)
+    for ep in tqdm(range(ep, max_epochs)):
         run_n_selfplay(config.games_per_epoch, DQNActor(algo, training=True), replay_buffer)
 
         algo.train_loss.reset_states()
-        for _ in tqdm(range(config.training_steps_per_epoch)):
+        for _ in range(config.training_steps_per_epoch):
             learner.learn()
         losses.append(learner.get_loss())
         display.clear_output()

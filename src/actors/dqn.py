@@ -1,7 +1,8 @@
 import numpy as np
 from copy import deepcopy
-from src.actor import Actor
-from src.algorithm import Algorithm
+import sys; sys.path.append("..")
+from actor import Actor
+from algorithm import Algorithm
 
 
 def collate_states(states):
