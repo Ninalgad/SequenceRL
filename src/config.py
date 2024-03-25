@@ -16,8 +16,8 @@ class DQNConfig:
     discount: float
 
     # Replay buffer.
-    num_trajectories_in_buffer: int = 10_000
-    batch_size: int = int(128)
+    num_trajectories_in_buffer: int = 1_000
+    batch_size: int = 64
 
     # Training
     training_steps: int = int(1e6)

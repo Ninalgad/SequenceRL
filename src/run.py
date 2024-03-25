@@ -2,7 +2,6 @@ import numpy as np
 import pickle
 import click
 from tqdm import tqdm
-from IPython import display
 
 from actor import Actor
 from replay import ReplayBuffer
@@ -51,7 +50,6 @@ def save(model_path, algo, replay_buffer, meta=None):
             np.array(algo.optimizer.variables, dtype='object'))
 
     # save replays
-    # save replays
     with open(model_path + "replay_buffer.pkl", 'wb') as f:
         config = replay_buffer.config
         replay_buffer.config = None  # can't pickle config
@@ -64,6 +62,25 @@ def save(model_path, algo, replay_buffer, meta=None):
             pickle.dump(meta, f)
 
 
+def load(path, algo, config):
+    # load replay
+    with open(path + "replay_buffer.pkl", 'rb') as f:
+        replay_buffer = pickle.load(f)
+    replay_buffer.config = config
+
+    # load algo state
+    algo.model.build()
+    algo.model.load_weights(path + 'model.h5')
+    algo.optimizer.build(algo.model.trainable_variables)
+    algo.optimizer.set_weights(np.load(path + 'opt.npy', allow_pickle=True))
+
+    # load training info
+    with open(path + "meta.pkl", 'rb') as f:
+        meta = pickle.load(f)
+
+    return replay_buffer, meta
+
+
 @click.command()
 @click.option('--model-path', type=str, default="", help="Path to save the model files and trajectories.")
 @click.option('--resume', type=str, default="", show_default=True, help="Path to files to resume training.")
@@ -72,25 +89,11 @@ def main(model_path, resume):
     algo = DQNAlgorithm(ConvNetwork(), learning_rate=config.learning_rate)
 
     if resume:
-        # load replay
-        with open(resume + "replay_buffer.pkl", 'rb') as f:
-            replay_buffer = pickle.load(f)
-        replay_buffer.config = config
-
-        # load algo state
-        algo.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 90)))
-        algo.model.load_weights(resume + 'model.h5')
-        algo.optimizer.build(algo.model.trainable_variables)
-        algo.optimizer.set_weights(np.load(resume + 'opt.npy', allow_pickle=True))
-
-        # load training info
-        with open(resume + "meta.pkl", 'rb') as f:
-            meta = pickle.load(f)
+        replay_buffer, meta = load(resume, algo, config)
         ep = meta['ep']
-
     else:
-        ep = 1
         replay_buffer = ReplayBuffer(config)
+        ep = 1
 
     learner = DQNLearner(algo, config, replay_buffer)
     losses = []
@@ -102,12 +105,12 @@ def main(model_path, resume):
         for _ in range(config.training_steps_per_epoch):
             learner.learn()
         losses.append(learner.get_loss())
-        display.clear_output()
 
         if (ep - 1) % config.export_network_every == 0:
+            print(f"EP: {ep}, Loss {np.mean(losses)}")
             save(model_path, algo, replay_buffer, {'ep': ep, 'loss': np.mean(losses)})
             losses = [learner.get_loss()]
-        print(f"EP: {ep}, Loss {np.mean(losses)}")
+
         learner.reset_loss()
         ep += 1
 

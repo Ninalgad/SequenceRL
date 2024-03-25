@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from src.algorithm import Algorithm
 
 
@@ -17,6 +18,9 @@ POLICY_SIGNATURE = [
 class DQNAlgorithm(Algorithm):
     def __init__(self, init_model, learning_rate=1e-5):
         super(DQNAlgorithm, self).__init__(init_model=init_model, learning_rate=learning_rate)
+
+    def build(self):
+        self.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 90)))
 
     @tf.function(input_signature=TRAIN_STEP_SIGNATURE)
     def train_step(self, board, vec, tar):

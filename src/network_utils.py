@@ -8,18 +8,11 @@ def point_wise_feed_forward_network(d_model, dff):
     ])
 
 
-def conv_layer(dim):
-    return tf.keras.Sequential([
-        tf.keras.layers.Conv2D(dim, 3, activation='relu', padding='same'),
-        tf.keras.layers.Conv2D(dim, 3, padding='same'),
-    ])
-
-
 class ConvLayer(tf.keras.layers.Layer):
     def __init__(self, d_model):
         super(ConvLayer, self).__init__()
-        self.conv1 = tf.keras.layers.Conv2D(d_model, 2, activation='relu', padding='same')
-        self.conv2 = tf.keras.layers.Conv2D(d_model, 2, padding='same')
+        self.conv1 = tf.keras.layers.Conv2D(d_model, 3, activation='relu', padding='same')
+        self.conv2 = tf.keras.layers.Conv2D(d_model, 3, padding='same')
         self.bn = tf.keras.layers.BatchNormalization()
         self.skip_layer = tf.keras.layers.Conv2D(d_model, 1)
 
@@ -55,8 +48,8 @@ class ConvBlock(tf.keras.layers.Layer):
 class ConvEncoder(tf.keras.Model):
     def __init__(self, d_model):
         super(ConvEncoder, self).__init__()
-        self.conv1 = ConvBlock(int(d_model // 2), num_layers=2)
-        self.conv2 = ConvBlock(d_model, num_layers=2)
+        self.conv1 = ConvBlock(int(d_model // 2), num_layers=3)
+        self.conv2 = ConvBlock(d_model, num_layers=3)
         self.output_layer = point_wise_feed_forward_network(d_model, d_model)
 
     def get_config(self):

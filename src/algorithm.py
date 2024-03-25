@@ -9,6 +9,10 @@ class Algorithm(metaclass=ABCMeta):
         self.model = init_model
 
     @abstractmethod
+    def build(self):
+        pass
+
+    @abstractmethod
     def train_step(self, board, vec, tar):
         pass
 
