@@ -12,6 +12,7 @@ from learner import DQNLearner
 from actors.dqn import DQNActor
 from algorithms.dqn import DQNAlgorithm
 from networks.cnn import ConvNetwork
+from networks.vit import VitNetwork
 
 
 def run_n_selfplay(
@@ -86,7 +87,7 @@ def load(path, algo, config):
 @click.option('--resume', type=str, default="", show_default=True, help="Path to files to resume training.")
 def main(model_path, resume):
     config = sequence_1v1_config()
-    algo = DQNAlgorithm(ConvNetwork(), learning_rate=config.learning_rate)
+    algo = DQNAlgorithm(VitNetwork(), learning_rate=config.learning_rate)
 
     if resume:
         replay_buffer, meta = load(resume, algo, config)

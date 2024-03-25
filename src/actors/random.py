@@ -1,8 +1,9 @@
 import numpy as np
-from ..env import SequenceGameEnv
+import sys; sys.path.append("..")
+from env import SequenceGameEnv
 from typing import List
-from ..actor import Actor
-from ..typers import Action
+from actor import Actor
+from typers import Action
 
 
 class RandomActor(Actor):
