@@ -69,7 +69,7 @@ def load(path, algo, config):
     replay_buffer.config = config
 
     # load algo state
-    algo.model.build()
+    algo.build()
     algo.model.load_weights(path + 'model.h5')
     algo.optimizer.build(algo.model.trainable_variables)
     algo.optimizer.set_weights(np.load(path + 'opt.npy', allow_pickle=True))
