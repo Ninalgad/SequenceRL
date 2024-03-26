@@ -3,7 +3,7 @@ import tensorflow as tf
 
 
 class VitNetwork(tf.keras.Model):
-    def __init__(self, num_layers=2, d_model=128, num_heads=2, dff=128,
+    def __init__(self, num_layers=6, d_model=256, num_heads=4, dff=256,
                  rate=0.1):
         super(VitNetwork, self).__init__()
 
