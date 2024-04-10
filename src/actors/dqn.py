@@ -3,16 +3,7 @@ from copy import deepcopy
 import sys; sys.path.append("..")
 from actor import Actor
 from algorithm import Algorithm
-
-
-def collate_states(states):
-    x = states.pop(0)
-    x = {k: [v] for (k, v) in x.items()}
-    for s in states:
-        for k, v in s.items():
-            x[k].append(v)
-
-    return x
+from utils import collate_states
 
 
 class DQNActor(Actor):
@@ -37,19 +28,15 @@ class DQNActor(Actor):
             env_copy = deepcopy(env)
             env_copy.apply(a)
 
-            if env.winner() == self.color:
-                best_idx = i
-                break
-
             next_states.append(env_copy.observation(reverse=True))
 
-        if best_idx is None:
-            next_states = collate_states(next_states)
-            q = self.algo.policy(next_states['board'], next_states['vec'])
-            q = np.squeeze(q.numpy(), -1)
-            best_idx = np.argmax(q)
+        next_states = collate_states(next_states)
+        q = self.algo.policy(next_states['board'], next_states['vec'])
+        q = np.squeeze(q.numpy(), -1)
+        best_idx = np.argmax(q)
+        action = actions[best_idx]
 
-            if self.verbose:
-                print(f'Eval: {q[best_idx]:.4f}')
+        if self.verbose:
+            print(f'Eval: {q[best_idx]:.4f}')
 
-        return actions[best_idx]
+        return action

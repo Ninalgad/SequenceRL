@@ -12,22 +12,49 @@ class VitNetwork(tf.keras.Model):
         self.encoder = Encoder(num_layers, d_model, num_heads, dff, 26, rate)
         self.final_layer = AttentionPool(output_dim=1, d_model=d_model)
 
-    def call(self, board, vec, training):
-        b = self.patch_layer(board)
+    def preprocess_inp(self, b, v):
+        b = self.patch_layer(b)
         b = tf.split(b, 5, axis=1)
         b = [tf.squeeze(x, 1) for x in b]
         b = tf.concat(b, axis=1)
 
         # use vec features as the first token, bert style
-        v = self.vec_emb(vec)
         v = tf.expand_dims(v, 1)
 
-        enc_output = self.encoder(tf.concat([b, v], axis=1), training)  # (batch_size, inp_seq_len, d_model)
+        x = tf.concat([b, v], axis=1)
+        return x
 
-        final_output, _ = self.final_layer(enc_output)  # (batch_size, tar_seq_len, target_vocab_size)
+    def call(self, board, vec, training):
+        v = self.vec_emb(vec)
+        x = self.preprocess_inp(board, v)
+
+        enc_output = self.encoder(x, training)
+
+        final_output, _ = self.final_layer(enc_output)
         final_output = tf.keras.activations.tanh(final_output)
 
         return final_output
+
+
+class URBEVitNetwork(VitNetwork):
+    def __init__(self, num_layers=6, d_model=256, num_heads=4, dff=256,
+                 rate=0.1):
+        super(URBEVitNetwork, self).__init__(num_layers=num_layers,
+        d_model=d_model, num_heads=num_heads, dff=dff, rate=rate)
+
+        self.final_layer = AttentionPool(output_dim=2, d_model=d_model)
+
+    def call(self, board, vec, training):
+        v = self.vec_emb(vec)
+        x = self.preprocess_inp(board, v)
+
+        enc_output = self.encoder(x, training)
+
+        output, _ = self.final_layer(enc_output)
+        q_output, y_output = output[:, :1], output[:, 1:]
+        q_output = tf.keras.activations.tanh(q_output)
+
+        return q_output, y_output
 
 
 def get_angles(pos, i, d_model):
@@ -68,8 +95,7 @@ def scaled_dot_product_attention(q, k, v, mask):
     Returns:
       output, attention_weights
     """
-
-    matmul_qk = tf.matmul(q, k, transpose_b=True)  # (..., seq_len_q, seq_len_k)
+    matmul_qk = tf.matmul(q, k, transpose_b=True)
 
     # scale matmul_qk
     dk = tf.cast(tf.shape(k)[-1], tf.float32)
@@ -81,7 +107,7 @@ def scaled_dot_product_attention(q, k, v, mask):
 
         # softmax is normalized on the last axis (seq_len_k) so that the scores
     # add up to 1.
-    attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)  # (..., seq_len_q, seq_len_k)
+    attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
 
     output = tf.matmul(attention_weights, v)  # (..., seq_len_q, depth_v)
 

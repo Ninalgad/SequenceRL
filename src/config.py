@@ -16,15 +16,15 @@ class DQNConfig:
     discount: float
 
     # Replay buffer.
-    num_trajectories_in_buffer: int = 1_000
-    batch_size: int = 64
+    num_trajectories_in_buffer: int = 500
+    batch_size: int = int(64)
 
     # Training
     training_steps: int = int(1e6)
-    export_network_every: int = int(250)
+    export_network_every: int = int(500)
     learning_rate: float = 1e-5
-    training_steps_per_epoch: int = 30
-    games_per_epoch: int = 20
+    training_steps_per_epoch: int = 3 # 30
+    games_per_epoch: int = 2 # 20
 
 
 def sequence_1v1_config() -> DQNConfig:

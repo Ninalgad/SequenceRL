@@ -32,12 +32,18 @@ class DQNLearner(Learner):
 
     def sample_batch(self):
         traj_batch = self.replay_buffer.sample()
-        training_batch = {'board': [], 'vec': [], 'tar': []}
+        training_batch = {'board': [], 'vec': [], 'tar': [], 'action': []}
 
         for state in traj_batch:
             training_batch['board'].append(state.observation['board'])
             training_batch['vec'].append(state.observation['vec'])
             training_batch['tar'].append(state.reward)
+
+            if state.action.feature is not None:
+                training_batch['action'].append(state.action.feature)
+
+        if not training_batch['action']:
+            del training_batch['action']
 
         training_batch = {k: np.array(v, 'float32') for (k, v) in training_batch.items()}
         training_batch['tar'] = np.expand_dims(training_batch['tar'], -1)
