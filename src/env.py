@@ -5,14 +5,15 @@ from typers import Action
 class SequenceGameEnv:
     """Implements the rules of the environment."""
 
-    def __init__(self):
+    def __init__(self, board=None):
 
         deck = get_deck()
         np.random.shuffle(deck)
         self.deck = deck
         self.discarded = []
         self.chip_board = np.zeros_like(BOARD, dtype='uint8')
-        self.card_board = BOARD.copy()
+
+        self.card_board = BOARD.copy() if (board is None) else board.copy()
         self.hands = {Color.BLUE: self.deck[:7], Color.RED: self.deck[7:14]}
 
         self.deck = self.deck[14:]
@@ -26,7 +27,7 @@ class SequenceGameEnv:
     def apply(self, action: Action):
         """Applies an action or a chance outcome to the environment."""
         x, y, played_card = action.x, action.y, action.card
-        colour = 0 if played_card in ONE_EYED_JACKS else self.actor
+        colour = 0 if (played_card in ONE_EYED_JACKS) else self.actor
         self.chip_board[x][y] = colour
 
         # remove card from hand
@@ -84,20 +85,20 @@ class SequenceGameEnv:
 
     def _legal_actions(self):
         actions = []
-        blocked_pos = []
         for card in self.hands[self.actor]:
-            if card in ONE_EYED_JACKS:  # remove
-                placement = self.opp
-                blocked_pos = unique_sequences(self.chip_board, True)[1]
-            elif card in TWO_EYED_JACKS:  # place anywhere
-                placement = 0
+            blocked_pos = [(0, 0), (0, 9), (9, 0), (9, 9)]
+            if card in ONE_EYED_JACKS:  # remove non-empty
+                blocked_pos += unique_sequences(self.chip_board, True)[1]
+                blocked_pos = set(blocked_pos)
+                loc = self.chip_board == self.opp
+            elif card in TWO_EYED_JACKS:  # place anywhere empty
+                loc = self.chip_board == 0
             else:
-                placement = card
+                loc = ((self.card_board == card) *
+                        (self.chip_board != self.opp) *
+                        (self.chip_board != self.actor))
 
-            blocked_pos = set(blocked_pos)
-            pos = np.where(self.card_board == placement)
-
-            for x, y in zip(*pos):
+            for x, y in zip(*np.where(loc)):
                 if (x, y) not in blocked_pos:
                     act = Action(x, y, card)
                     actions.append(act)

@@ -21,7 +21,7 @@ class DQNConfig:
 
     # Training
     training_steps: int = int(1e6)
-    export_network_every: int = int(500)
+    export_network_every: int = 100 #int(500)
     learning_rate: float = 1e-5
     training_steps_per_epoch: int = 3 # 30
     games_per_epoch: int = 2 # 20

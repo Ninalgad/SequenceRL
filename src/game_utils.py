@@ -15,8 +15,9 @@ BOARD = [
     ['x', '6c', '7c', '8c', '9c', '10c', 'qc', 'kc', 'ac', 'x'],
 ]
 BOARD = np.array(BOARD)
-TWO_EYED_JACKS = ['jc', 'jd']
-ONE_EYED_JACKS = ['js', 'jh']
+TWO_EYED_JACKS = ['jc', 'jd', 'jc', 'jd']
+ONE_EYED_JACKS = ['js', 'jh', 'js', 'jh']
+CORNERS = [(0, 0), (0, 9), (9, 0), (9, 9)]
 
 
 def get_deck():
@@ -26,7 +27,7 @@ def get_deck():
             c = str(i) + s
             assert (c == BOARD).sum() == 2, c
             deck += [c, c]
-    deck += 2 * TWO_EYED_JACKS + 2 * ONE_EYED_JACKS
+    deck += TWO_EYED_JACKS + ONE_EYED_JACKS
     return deck
 
 
@@ -50,7 +51,7 @@ def is_valid_position(x, y, n=10):
 
 def unique_sequences(grid, return_sequences=False):
     grid = grid.copy()
-    directions = [(1, 0), (0, 1), (1, 1), (-1, 1)]
+    directions = [(1, 0), (0, 1), (1, 1), (-1, 1), (-1, -1)]
     empty = 0
 
     def get_sequence(x, y, dx, dy, colour):
@@ -66,7 +67,7 @@ def unique_sequences(grid, return_sequences=False):
         return sequence
 
     sequence_counts = {1: 0, 2: 0}
-    used = []
+    used = set()
     completed = []
     for x in range(10):
         for y in range(10):
@@ -75,12 +76,14 @@ def unique_sequences(grid, return_sequences=False):
                 grid[0][9] = grid[0][0] = grid[9][0] = grid[9][9] = grid[0][9] = c
                 for dx, dy in directions:
                     sequence = get_sequence(x, y, dx, dy, c)
-                    used += sequence
+                    for s in sequence:
+                      used.add(s)
+                    # used += sequence
                     n = len(sequence)
-                    if n >= 7:
+                    if n >= 10:
                         sequence_counts[c] += 2
                         completed += sequence
-                    elif n >= 4:
+                    elif n >= 5:
                         sequence_counts[c] += 1
                         completed += sequence
 
