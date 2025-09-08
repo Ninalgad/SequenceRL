@@ -13,6 +13,7 @@ from learner import DQNLearner
 from actors.dqn import DQNActor
 from algorithms.dqn import DQNAlgorithm
 from networks.cnn import ConvNetwork
+from networks.mlp import MLPNetwork
 
 
 def run_n_selfplay(
@@ -66,10 +67,17 @@ def save(model_path, algo, replay_buffer, meta=None):
 
 @click.command()
 @click.option('--model-path', type=str, default="", help="Path to save the model files and trajectories.")
+@click.option('--net-type', type=str, default="cnn", help="Path to save the model files and trajectories.")
 @click.option('--resume', type=str, default="", show_default=True, help="Path to files to resume training.")
-def main(model_path, resume):
+def main(model_path, net_type, resume):
     config = sequence_1v1_config()
-    algo = DQNAlgorithm(ConvNetwork(), learning_rate=config.learning_rate)
+    if net_type == "cnn":
+      net = ConvNetwork()
+    elif net_type == "mlp":
+      net = MLPNetwork()
+    else:
+      raise ValueError("Unrecognised 'net-type'. ['cnn', 'mlp']")
+    algo = DQNAlgorithm(net, learning_rate=config.learning_rate)
 
     if resume:
         # load replay

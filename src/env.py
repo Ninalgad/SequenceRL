@@ -55,12 +55,13 @@ class SequenceGameEnv:
 
         board_obs = board_repr(self.chip_board, actor, opp).astype('uint8')
         hand_obs = card_set_repr(self.hands[actor])
+        discarded_obs = card_set_repr(self.discarded)
 
         scores = unique_sequences(self.chip_board)
         sorted_keys = sorted(scores.keys())
         score_obs = np.array([scores[k] for k in sorted_keys], 'uint8')
 
-        vec_obs = np.concatenate([hand_obs, score_obs], dtype='uint8')
+        vec_obs = np.concatenate([hand_obs, discarded_obs, score_obs], dtype='uint8')
 
         return {'board': board_obs, 'vec': vec_obs}
 

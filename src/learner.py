@@ -28,7 +28,7 @@ class DQNLearner(Learner):
         return self.algo.train_loss.result().numpy()
 
     def reset_loss(self):
-        self.algo.train_loss.reset_states()
+        self.algo.train_loss.reset_state()
 
     def sample_batch(self):
         traj_batch = self.replay_buffer.sample()
