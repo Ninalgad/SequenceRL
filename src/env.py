@@ -89,15 +89,18 @@ class SequenceGameEnv:
         for card in self.hands[self.actor]:
             blocked_pos = [(0, 0), (0, 9), (9, 0), (9, 9)]
             if card in ONE_EYED_JACKS:  # remove non-empty
-                blocked_pos += unique_sequences(self.chip_board, True)[1]
+                opps_seqs = unique_sequences(self.chip_board, True)[1][self.opp]
+                for s in opps_seqs:
+                    # assert all([(self.chip_board[x][y] == self.opp) or ((x, y) in CORNERS) for (x, y) in s])
+                    blocked_pos += list(s)
                 blocked_pos = set(blocked_pos)
                 loc = self.chip_board == self.opp
             elif card in TWO_EYED_JACKS:  # place anywhere empty
                 loc = self.chip_board == 0
             else:
                 loc = ((self.card_board == card) *
-                        (self.chip_board != self.opp) *
-                        (self.chip_board != self.actor))
+                       (self.chip_board != self.opp) *
+                       (self.chip_board != self.actor))
 
             for x, y in zip(*np.where(loc)):
                 if (x, y) not in blocked_pos:

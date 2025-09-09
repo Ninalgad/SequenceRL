@@ -50,46 +50,74 @@ def is_valid_position(x, y, n=10):
 
 
 def unique_sequences(grid, return_sequences=False):
-    grid = grid.copy()
-    directions = [(1, 0), (0, 1), (1, 1), (-1, 1), (-1, -1)]
-    empty = 0
+    grid = np.array(grid, dtype=int)
+    n = grid.shape[0]
+    counts = {1: 0, 2: 0}
+    sequences = {1: [], 2: []}  # store coordinates of completed sequences
 
-    def get_sequence(x, y, dx, dy, colour):
-        sequence = []
-        n = 0
-        while is_valid_position(x, y) and (colour == grid[x][y]):
-            sequence.append((x, y))
-            x += dx
-            y += dy
-            n += 1
-        if n < 5:
-            return []
-        return sequence
+    def add_sequence(val, coords):
+        length = len(coords)
+        if length < 5:
+            return
+        if length >= 10:
+            counts[val] += 2
+        else:  # length 5–9
+            counts[val] += 1
+        sequences[val].append(coords)
 
-    sequence_counts = {1: 0, 2: 0}
-    used = set()
-    completed = []
-    for x in range(10):
-        for y in range(10):
-            c = grid[x][y]
-            if (c != empty) and ((x, y) not in used):
-                grid[0][9] = grid[0][0] = grid[9][0] = grid[9][9] = grid[0][9] = c
-                for dx, dy in directions:
-                    sequence = get_sequence(x, y, dx, dy, c)
-                    for s in sequence:
-                      used.add(s)
-                    # used += sequence
-                    n = len(sequence)
-                    if n >= 10:
-                        sequence_counts[c] += 2
-                        completed += sequence
-                    elif n >= 5:
-                        sequence_counts[c] += 1
-                        completed += sequence
+    def process_line(line, coords):
+        if len(line) < 5:
+            return
+        diffs = np.diff(line)
+        run_ends = np.where(diffs != 0)[0] + 1
+        run_starts = np.r_[0, run_ends]
+        run_ends = np.r_[run_ends, len(line)]
+        run_vals = line[run_starts]
+        run_lengths = run_ends - run_starts
+
+        for val, start, end in zip(run_vals, run_starts, run_ends):
+            if val == 0 or (end - start) < 5:
+                continue
+            coords_run = coords[start:end]
+            add_sequence(val, coords_run)
+
+    def process_edge_line(line, coords):
+        assert len(line) == 10
+        line = line.copy()
+        # copy neighbors into corners
+        line[0] = line[1]
+        line[-1] = line[-2]
+        process_line(line, coords)
+
+    # Rows and columns
+    for i in range(1, n-1):
+        process_line(grid[i, :], [(i, j) for j in range(n)])
+        process_line(grid[:, i], [(j, i) for j in range(n)])
+
+    process_edge_line(grid[0, :], [(0, j) for j in range(n)])
+    process_edge_line(grid[-1, :], [(n-1, j) for j in range(n)])
+    process_edge_line(grid[:, 0], [(i, 0) for i in range(n)])
+    process_edge_line(grid[:, -1], [(i, n-1) for i in range(n)])
+
+    process_edge_line(np.diag(grid), [(i, i) for i in range(n)])
+    process_edge_line(np.diag(np.fliplr(grid)), [(i, n-1-i) for i in range(n)])
+
+    # Diagonals (↘) and anti-diagonals (↙) off main
+    for offset in range(-n + 1, n):
+        if offset != 0:
+            diag = np.diag(grid, k=offset)
+            coords = [(i, i+offset) for i in range(len(diag))] if offset >= 0 \
+                     else [(i-offset, i) for i in range(len(diag))]
+            process_line(diag, coords)
+
+            diag = np.diag(np.fliplr(grid), k=offset)
+            coords = [(i, n-1-i-offset) for i in range(len(diag))] if offset >= 0 \
+                     else [(i-offset, n-1-i) for i in range(len(diag))]
+            process_line(diag, coords)
 
     if return_sequences:
-        return sequence_counts, completed
-    return sequence_counts
+        return counts, sequences
+    return counts
 
 
 def get_opp(color):

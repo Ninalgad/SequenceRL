@@ -16,7 +16,7 @@ def print_play_state(env: SequenceGameEnv, legal_actions: List[Action]):
     print("plr hand", env.hands[env.actor])
 
     chip_map = {env.actor: '●', env.opp: '▴', 0: ' ',
-                -1: '○', -2: '⊙', -3: '%'}
+                -1: '○', -2: 'x', -3: '%'}
     state_str = "| |" + "|".join(list([str(c) for c in range(10)])) + "|\n"
     for i in range(10):
         row = f"|{i}|" + "|".join([chip_map[x] for x in b[i]]) + "|\n"

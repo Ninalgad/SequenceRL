@@ -86,7 +86,7 @@ def main(model_path, net_type, resume):
         replay_buffer.config = config
 
         # load algo state
-        algo.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 90)))
+        algo.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 178)))
         algo.model.load_weights(resume + 'model.weights.h5')
         algo.optimizer.build(algo.model.trainable_variables)
         algo.optimizer.set_weights(np.load(resume + 'opt.npy', allow_pickle=True))

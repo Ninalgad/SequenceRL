@@ -1,21 +1,40 @@
 import tensorflow as tf
-from abc import ABCMeta, abstractmethod
+import numpy as np
+from src.algorithm import Algorithm
 
 
-class Algorithm(metaclass=ABCMeta):
-    def __init__(self, init_model, learning_rate):
-        self.train_loss = tf.keras.metrics.Mean()
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate)
-        self.model = init_model
+TRAIN_STEP_SIGNATURE = [
+    tf.TensorSpec(shape=(None, 10, 10, 2), dtype=tf.float32, name='board'),
+    tf.TensorSpec(shape=(None, 178), dtype=tf.float32, name='vec'),
+    tf.TensorSpec(shape=(None, 1), dtype=tf.float32, name='tar')
+]
 
-    @abstractmethod
+POLICY_SIGNATURE = [
+    tf.TensorSpec(shape=(None, 10, 10, 2), dtype=tf.float32, name='board'),
+    tf.TensorSpec(shape=(None, 178), dtype=tf.float32, name='vec')
+]
+
+
+class DQNAlgorithm(Algorithm):
+    def __init__(self, init_model, learning_rate=1e-5):
+        super(DQNAlgorithm, self).__init__(init_model=init_model, learning_rate=learning_rate)
+
     def build(self):
-        pass
+        self.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 178)))
 
-    @abstractmethod
+    @tf.function(input_signature=TRAIN_STEP_SIGNATURE)
     def train_step(self, board, vec, tar):
-        pass
+        with tf.GradientTape() as tape:
+            pred = self.model(board, vec)
+            loss = tf.keras.losses.mae(pred, tar)
 
-    @abstractmethod
-    def policy(self, board_inp, vec_inp):
-        pass
+        vars = self.model.trainable_variables
+        grads = tape.gradient(loss, vars)
+        self.optimizer.apply_gradients(zip(grads, vars))
+        self.train_loss(loss)
+        return loss
+
+    @tf.function(input_signature=POLICY_SIGNATURE)
+    def policy(self, board, vec):
+        q = self.model(board, vec)
+        return q
