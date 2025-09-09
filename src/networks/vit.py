@@ -24,7 +24,7 @@ class VitNetwork(tf.keras.Model):
         x = tf.concat([b, v], axis=1)
         return x
 
-    def call(self, board, vec, training):
+    def call(self, board, vec):
         v = self.vec_emb(vec)
         x = self.preprocess_inp(board, v)
 

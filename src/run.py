@@ -14,6 +14,8 @@ from actors.dqn import DQNActor
 from algorithms.dqn import DQNAlgorithm
 from networks.cnn import ConvNetwork
 from networks.mlp import MLPNetwork
+from networks.vit import VitNetwork
+from networks.mixer import MlpMixerNetwork
 
 
 def run_n_selfplay(
@@ -67,16 +69,19 @@ def save(model_path, algo, replay_buffer, meta=None):
 
 @click.command()
 @click.option('--model-path', type=str, default="", help="Path to save the model files and trajectories.")
-@click.option('--net-type', type=str, default="cnn", help="Path to save the model files and trajectories.")
+@click.option('--net-type', default="cnn", help="Model Architecture.", type=click.Choice(['cnn', 'mlp', 'vit', 'mix']))
 @click.option('--resume', type=str, default="", show_default=True, help="Path to files to resume training.")
 def main(model_path, net_type, resume):
     config = sequence_1v1_config()
     if net_type == "cnn":
-      net = ConvNetwork()
+        net = ConvNetwork()
     elif net_type == "mlp":
-      net = MLPNetwork()
-    else:
-      raise ValueError("Unrecognised 'net-type'. ['cnn', 'mlp']")
+        net = MLPNetwork()
+    elif net_type == "vit":
+        net = VitNetwork()
+    else:  # net_type == "mix":
+        net = MlpMixerNetwork()
+
     algo = DQNAlgorithm(net, learning_rate=config.learning_rate)
 
     if resume:
@@ -86,7 +91,7 @@ def main(model_path, net_type, resume):
         replay_buffer.config = config
 
         # load algo state
-        algo.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 178)))
+        algo.build()
         algo.model.load_weights(resume + 'model.weights.h5')
         algo.optimizer.build(algo.model.trainable_variables)
         algo.optimizer.set_weights(np.load(resume + 'opt.npy', allow_pickle=True))
