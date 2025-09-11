@@ -36,7 +36,7 @@ def sequence_1v1_config() -> DQNConfig:
     return DQNConfig(
         environment_factory=environment_factory,
         discount=0.99,
-        num_trajectories_in_buffer=int(1e5),
+        num_trajectories_in_buffer=int(1e4),
         training_steps=int(8e6),
         batch_size=64,
         learning_rate=1e-5)

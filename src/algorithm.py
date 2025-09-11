@@ -13,7 +13,7 @@ class Algorithm(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def train_step(self, board, vec, tar):
+    def train_step(self, board, vec, action, tar):
         pass
 
     @abstractmethod

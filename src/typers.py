@@ -14,7 +14,6 @@ class Action(NamedTuple):
     x: int
     y: int
     card: str
-    feature: Optional[float] = None
 
 
 class State(NamedTuple):
@@ -22,7 +21,7 @@ class State(NamedTuple):
     observation: Dict[str, float]
     reward: float
     player: Color
-    action: Optional[Tuple[Any]] = None
+    action: Tuple[int]
 
 
 # List of game states

@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 
@@ -9,7 +8,7 @@ class MLPNetwork(tf.keras.Model):
         self.patch_layer = tf.keras.layers.Conv2D(d_model, 2, strides=2)
         self.emb = tf.keras.layers.Dense(d_model)
         self.encoder_layers = [EncoderLayer(d_model, dff) for _ in range(num_blocks)]
-        self.final_layer = point_wise_feed_forward_network(1, dff)
+        self.final_layer = point_wise_feed_forward_network(101, dff)
 
     @staticmethod
     def preprocess_inp(b, v):
@@ -25,10 +24,14 @@ class MLPNetwork(tf.keras.Model):
         for lay in self.encoder_layers:
           x = lay(x)
 
-        final_output = self.final_layer(x)
-        final_output = tf.keras.activations.tanh(final_output)
+        x = self.final_layer(x)
+        value = tf.keras.activations.tanh(x[:, :1])
 
-        return final_output
+        x = tf.split(x[:, 1:], 10, axis=-1)
+        x = tf.stack(x, axis=-1)
+        policy_logits = x
+
+        return value, policy_logits
 
 
 def point_wise_feed_forward_network(d_model, dff):

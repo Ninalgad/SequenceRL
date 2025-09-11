@@ -22,7 +22,6 @@ class DQNActor(Actor):
         if self.training and (np.random.uniform() < .1):
             return actions[np.random.choice(len(actions))]
 
-        best_idx = None
         next_states = []
         for i, a in enumerate(actions):
             env_copy = deepcopy(env)
@@ -31,7 +30,7 @@ class DQNActor(Actor):
             next_states.append(env_copy.observation(reverse=True))
 
         next_states = collate_states(next_states)
-        q = self.algo.policy(next_states['board'], next_states['vec'])
+        q = self.algo.policy(next_states['board'], next_states['vec'])[0]
         q = np.squeeze(q.numpy(), -1)
         best_idx = np.argmax(q)
         action = actions[best_idx]

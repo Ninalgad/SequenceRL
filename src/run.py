@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 import click
+import os
 from tqdm import tqdm
 from IPython import display
 
@@ -9,9 +10,14 @@ from replay import ReplayBuffer
 from env import SequenceGameEnv
 from typers import *
 from config import sequence_1v1_config
-from learner import DQNLearner
+from learner import StandardLearner
+
 from actors.dqn import DQNActor
+from actors.actor_critic import A2CActor
+
 from algorithms.dqn import DQNAlgorithm
+from algorithms.actor_critic import A2CAlgorithm
+
 from networks.cnn import ConvNetwork
 from networks.mlp import MLPNetwork
 from networks.vit import VitNetwork
@@ -35,7 +41,7 @@ def run_n_selfplay(
                 observation=env.observation(),
                 reward=env.reward(env.to_play()),
                 player=env.to_play(),
-                action=action
+                action=(action.x, action.y)
             )
             episode.append(state)
             env.apply(action)
@@ -69,9 +75,11 @@ def save(model_path, algo, replay_buffer, meta=None):
 
 @click.command()
 @click.option('--model-path', type=str, default="", help="Path to save the model files and trajectories.")
-@click.option('--net-type', default="cnn", help="Model Architecture.", type=click.Choice(['cnn', 'mlp', 'vit', 'mix']))
+@click.option('--net-type', default="mlp", help="Model Architecture.", type=click.Choice(['cnn', 'mlp', 'vit', 'mix']))
+@click.option('--algo-type', default="dqn", help="Learning Algorithim.", type=click.Choice(['dqn', 'a2c']))
 @click.option('--resume', type=str, default="", show_default=True, help="Path to files to resume training.")
-def main(model_path, net_type, resume):
+def main(model_path, net_type, algo_type, resume):
+    print()
     config = sequence_1v1_config()
     if net_type == "cnn":
         net = ConvNetwork()
@@ -82,7 +90,10 @@ def main(model_path, net_type, resume):
     else:  # net_type == "mix":
         net = MlpMixerNetwork()
 
-    algo = DQNAlgorithm(net, learning_rate=config.learning_rate)
+    if algo_type == 'dqn':
+        algo = DQNAlgorithm(net, learning_rate=config.learning_rate)
+    else:
+        algo = A2CAlgorithm(net, learning_rate=config.learning_rate)
 
     if resume:
         # load replay
@@ -105,11 +116,16 @@ def main(model_path, net_type, resume):
         ep = 1
         replay_buffer = ReplayBuffer(config)
 
-    learner = DQNLearner(algo, config, replay_buffer)
+    if algo_type == 'dqn':
+        actor = DQNActor(algo, training=True)
+    else:
+        actor = A2CActor(algo, training=True)
+
+    learner = StandardLearner(algo, config, replay_buffer)
     losses = []
     max_epochs = int(config.training_steps // config.training_steps_per_epoch)
     for ep in tqdm(range(ep, max_epochs)):
-        run_n_selfplay(config.games_per_epoch, DQNActor(algo, training=True), replay_buffer)
+        run_n_selfplay(config.games_per_epoch, actor, replay_buffer)
 
         algo.train_loss.reset_state()
         for _ in range(config.training_steps_per_epoch):

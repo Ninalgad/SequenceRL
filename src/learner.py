@@ -14,8 +14,15 @@ class Learner(metaclass=ABCMeta):
         """Single training step of the learner."""
 
 
-class DQNLearner(Learner):
-    """Implements the learning for Stochastic MuZero."""
+def encode_action(a):
+    x, y = a
+    a = np.zeros((10, 10), "float32")
+    a[x, y] = 1
+    return a
+
+
+class StandardLearner(Learner):
+    """A learner to update the network weights."""
 
     def __init__(self, algo: Algorithm,
                  config: DQNConfig,
@@ -38,12 +45,7 @@ class DQNLearner(Learner):
             training_batch['board'].append(state.observation['board'])
             training_batch['vec'].append(state.observation['vec'])
             training_batch['tar'].append(state.reward)
-
-            if state.action.feature is not None:
-                training_batch['action'].append(state.action.feature)
-
-        if not training_batch['action']:
-            del training_batch['action']
+            training_batch['action'].append(encode_action(state.action))
 
         training_batch = {k: np.array(v, 'float32') for (k, v) in training_batch.items()}
         training_batch['tar'] = np.expand_dims(training_batch['tar'], -1)

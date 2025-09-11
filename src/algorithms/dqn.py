@@ -6,6 +6,7 @@ from src.algorithm import Algorithm
 TRAIN_STEP_SIGNATURE = [
     tf.TensorSpec(shape=(None, 10, 10, 2), dtype=tf.float32, name='board'),
     tf.TensorSpec(shape=(None, 178), dtype=tf.float32, name='vec'),
+    tf.TensorSpec(shape=(None, 10, 10), dtype=tf.float32, name='action'),
     tf.TensorSpec(shape=(None, 1), dtype=tf.float32, name='tar')
 ]
 
@@ -23,7 +24,7 @@ class DQNAlgorithm(Algorithm):
         self.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 178)))
 
     @tf.function(input_signature=TRAIN_STEP_SIGNATURE)
-    def train_step(self, board, vec, tar):
+    def train_step(self, board, vec, action, tar):
         with tf.GradientTape() as tape:
             pred = self.model(board, vec)
             loss = tf.keras.losses.mae(pred, tar)
