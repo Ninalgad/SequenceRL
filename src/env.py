@@ -54,7 +54,7 @@ class SequenceGameEnv:
             opp = get_opp(self.opp)
 
         board_obs = board_repr(self.chip_board, actor, opp).astype('uint8')
-        hand_obs = card_set_repr(self.hands[actor])
+        hand_obs = card_set_repr(self.hands[self.actor])  # don't leak hidden states
         discarded_obs = card_set_repr(self.discarded)
 
         scores = unique_sequences(self.chip_board)

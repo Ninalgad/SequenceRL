@@ -1,4 +1,3 @@
-import numpy as np
 from abc import ABCMeta, abstractmethod
 from typers import *
 from config import DQNConfig
@@ -12,13 +11,6 @@ class Learner(metaclass=ABCMeta):
     @abstractmethod
     def learn(self):
         """Single training step of the learner."""
-
-
-def encode_action(a):
-    x, y = a
-    a = np.zeros((10, 10), "float32")
-    a[x, y] = 1
-    return a
 
 
 class StandardLearner(Learner):
@@ -45,7 +37,7 @@ class StandardLearner(Learner):
             training_batch['board'].append(state.observation['board'])
             training_batch['vec'].append(state.observation['vec'])
             training_batch['tar'].append(state.reward)
-            training_batch['action'].append(encode_action(state.action))
+            training_batch['action'].append(state.action.encode())
 
         training_batch = {k: np.array(v, 'float32') for (k, v) in training_batch.items()}
         training_batch['tar'] = np.expand_dims(training_batch['tar'], -1)

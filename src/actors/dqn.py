@@ -21,21 +21,21 @@ class DQNActor(Actor):
         self.num_actions += 1
         if self.training and (np.random.uniform() < .1):
             return actions[np.random.choice(len(actions))]
+        obs = env.observation()
 
         next_states = []
         for i, a in enumerate(actions):
-            env_copy = deepcopy(env)
-            env_copy.apply(a)
-
-            next_states.append(env_copy.observation(reverse=True))
+            obs_copy = deepcopy(obs)
+            obs_copy['action'] = a.encode()
+            next_states.append(obs_copy)
 
         next_states = collate_states(next_states)
-        q = self.algo.policy(next_states['board'], next_states['vec'])[0]
+        q = self.algo.policy(**next_states)
         q = np.squeeze(q.numpy(), -1)
         best_idx = np.argmax(q)
         action = actions[best_idx]
 
         if self.verbose:
-            print(f'Eval: {q[best_idx]:.4f}')
+            print(f'Eval| Best: {q[best_idx]:.4f}, Mean: {q.mean():.4f}')
 
         return action

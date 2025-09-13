@@ -8,30 +8,25 @@ class MLPNetwork(tf.keras.Model):
         self.patch_layer = tf.keras.layers.Conv2D(d_model, 2, strides=2)
         self.emb = tf.keras.layers.Dense(d_model)
         self.encoder_layers = [EncoderLayer(d_model, dff) for _ in range(num_blocks)]
-        self.final_layer = point_wise_feed_forward_network(101, dff)
+        self.final_layer = point_wise_feed_forward_network(1, dff)
 
     @staticmethod
-    def preprocess_inp(b, v):
+    def preprocess_inp(b, a, v):
         b = tf.keras.layers.Flatten()(b)
+        a = tf.keras.layers.Flatten()(a)
         v = tf.keras.layers.Flatten()(v)
-        x = tf.concat([b, v], axis=1)
+        x = tf.concat([b, a, v], axis=1)
 
         return x
 
-    def call(self, board, vec):
-        x = self.preprocess_inp(board, vec)
+    def call(self, board, act, vec):
+        x = self.preprocess_inp(board, act, vec)
         x = self.emb(x)
         for lay in self.encoder_layers:
-          x = lay(x)
+            x = lay(x)
 
         x = self.final_layer(x)
-        value = tf.keras.activations.tanh(x[:, :1])
-
-        x = tf.split(x[:, 1:], 10, axis=-1)
-        x = tf.stack(x, axis=-1)
-        policy_logits = x
-
-        return value, policy_logits
+        return tf.keras.activations.tanh(x)
 
 
 def point_wise_feed_forward_network(d_model, dff):

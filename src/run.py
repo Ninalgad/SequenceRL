@@ -1,4 +1,3 @@
-import numpy as np
 import pickle
 import click
 import os
@@ -41,7 +40,7 @@ def run_n_selfplay(
                 observation=env.observation(),
                 reward=env.reward(env.to_play()),
                 player=env.to_play(),
-                action=(action.x, action.y)
+                action=action
             )
             episode.append(state)
             env.apply(action)
