@@ -31,7 +31,7 @@ class State(NamedTuple):
     observation: Dict[str, float]
     reward: float
     player: Color
-    action: Tuple[int]
+    action: Action
 
 
 # List of game states

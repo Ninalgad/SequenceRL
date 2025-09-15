@@ -77,4 +77,4 @@ def sequence_1v1_league_config() -> DQNLeagueConfig:
         num_trajectories_in_buffer=int(1e4),
         training_steps=int(8e6),
         batch_size=64,
-        learning_rate=1e-5)
+        learning_rate=1e-4)

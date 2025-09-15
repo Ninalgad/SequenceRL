@@ -1,5 +1,4 @@
 from scipy.special import softmax
-from actor import Actor
 import numpy as np
 import json
 
@@ -64,8 +63,8 @@ class League:
         self.players[winner_id].update_rating(elo_w)
         self.players[loser_id].update_rating(elo_l)
 
-    def register(self, actor, id):
-        self.players[id] = Player(actor=actor, rating=self.init_rating)
+    def register(self, actor, player_id):
+        self.players[player_id] = Player(actor=actor, rating=self.init_rating)
 
     def best(self):
         best_rating = -np.inf
@@ -78,14 +77,46 @@ class League:
         return best_player
 
     def worst(self, min_games=10):
-        worst_rating = -np.inf
+        worst_rating = np.inf
         worst_player = ""
         for k, p in self.players.items():
             r = p.rating
-            if r < worst_rating:
+            if (r < worst_rating) and (p.num_games > min_games):
                 worst_rating = r
                 worst_player = k
         return worst_player
+
+    def newest(self):
+        if not len(self.players):
+            return ""
+        player_games = {k: v.num_games for k, v in self.players.items()}
+        return min(player_games, key=player_games.get)
+
+    def __str__(self):
+        def _significance(n):
+            s = ""
+            if n > 10000:
+                s = "***"
+            elif n > 1000:
+                s = "**"
+            elif n > 100:
+                s = "*"
+            return s
+
+        pool = list(self.players.keys())
+        ratings = [int(self.players[p].rating) for p in pool]
+        games = [int(self.players[p].num_games) for p in pool]
+        idx = np.argsort(ratings)[::-1]
+        newest = self.newest()
+        s = ""
+        for i in idx:
+            p = pool[i]
+            if p == newest:
+                s += f"| {p} (latest): {ratings[i]}{_significance(games[i])} "
+            else:
+                s += f"| {p}: {ratings[i]}{_significance(games[i])} "
+
+        return s
 
     def export_to_json(self, save_dir):
         dat = {k: {'rating': p.rating, 'num_games': p.num_games}
@@ -96,7 +127,7 @@ class League:
     def import_json(self, save_dir):
         with open(save_dir + 'ratings.json', 'r') as f:
             dat = json.load(f)
-        for pid in self.players:
+        for pid in dat:
             r = dat[pid]['rating']
             n = dat[pid]['num_games']
             if pid in self.players:

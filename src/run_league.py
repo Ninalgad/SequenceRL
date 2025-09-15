@@ -1,6 +1,7 @@
 import pickle
 import click
 import os
+import json
 from tqdm import tqdm
 from IPython import display
 
@@ -98,23 +99,15 @@ def recreate_league_from_dir(league_dir, config):
     return L
 
 
-def save(model_path, algo, replay_buffer, meta=None):
+def save(model_path, algo, meta):
     # save algo state
     algo.model.save_weights(model_path + 'model.weights.h5')
     np.save(model_path + 'opt.npy',
             np.array(algo.optimizer.variables, dtype='object'))
 
-    # save replays
-    with open(model_path + "replay_buffer.pkl", 'wb') as f:
-        config = replay_buffer.config
-        replay_buffer.config = None  # can't pickle config
-        pickle.dump(replay_buffer, f, protocol=pickle.HIGHEST_PROTOCOL)
-    replay_buffer.config = config
-
     # save training info
-    if meta:
-        with open(model_path + "meta.pkl", 'wb') as f:
-            pickle.dump(meta, f)
+    with open(model_path + 'train.json', 'w') as f:
+        json.dump(meta, f)
 
 
 def create_dqn_bot(weight_file, config):
@@ -140,56 +133,60 @@ def main(model_path, league_dir, init_weights, resume):
     algo.build()
 
     if resume:
-        # load replay
-        with open(resume + "replay_buffer.pkl", 'rb') as f:
-            replay_buffer = pickle.load(f)
-        replay_buffer.config = config
 
         # load algo state
+        print('loading algo')
         algo.model.load_weights(resume + 'model.weights.h5')
         algo.optimizer.build(algo.model.trainable_variables)
         algo.optimizer.set_weights(np.load(resume + 'opt.npy', allow_pickle=True))
 
         # load training info
-        with open(resume + "meta.pkl", 'rb') as f:
-            meta = pickle.load(f)
+        with open(resume + 'train.json', 'r') as f:
+            meta = json.load(f)
         ep = meta['ep']
 
         # load league
+        print('loading league')
         if os.path.isdir(league_dir):
             L = recreate_league_from_dir(league_dir, config)
-            print(f"Loaded league from {league_dir}")
+            assert len(L.players) > 0
+            print(f"Loaded league of size {len(L.players)} from {league_dir}")
+
         else:
             L = League()
             print("Creating new league.")
 
     else:
         ep = 1
-        replay_buffer = ReplayBuffer(config)
         L = League()
 
-    if init_weights:
-        algo.model.load_weights(init_weights)
+        if init_weights:
+            algo.model.load_weights(init_weights)
 
     actor = DQNActor(algo, training=True)
-
+    replay_buffer = ReplayBuffer(config)
     learner = StandardLearner(algo, config, replay_buffer)
     losses = []
     max_epochs = int(config.training_steps // config.training_steps_per_epoch)
-    for ep in tqdm(range(ep, max_epochs)):
+
+    pbar = tqdm(range(ep, max_epochs))
+
+    for ep in pbar:
         run_n_selfplay(config.self_play_games_per_epoch, actor, replay_buffer)
 
-        if len(L.players) > 1:
+        if len(L.players) > 3:
             run_n_leagueplay(config.run_n_leagueplay_games_per_epoch, L, replay_buffer)
 
         algo.train_loss.reset_state()
         for _ in range(config.training_steps_per_epoch):
             learner.learn()
         losses.append(learner.get_loss())
-        display.clear_output()
+        replay_buffer.reset()
+
+        pbar.set_description(f"League Stats: {str(L)}")
 
         if (ep - 1) % config.export_network_every == 0:
-            save(model_path, algo, replay_buffer, {'ep': ep, 'loss': np.mean(losses)})
+            save(model_path, algo, {'ep': ep, 'loss': np.mean(losses).item()})
             losses = [learner.get_loss()]
 
             # add new league entry
@@ -204,13 +201,11 @@ def main(model_path, league_dir, init_weights, resume):
                 worst_lid = L.worst()
                 if worst_lid:
                     os.remove(league_dir + f'{worst_lid}.weights.h5')
-                    del L[worst_lid]
+                    del L.players[worst_lid]
                     print(f"Removed {worst_lid} from the league.")
-
+            # save league data
+            L.export_to_json(league_dir)
             print(f"EP: {ep}, Loss {np.mean(losses)}")
-
-        # save league data
-        L.export_to_json(league_dir)
 
         learner.reset_loss()
         ep += 1

@@ -1,4 +1,3 @@
-import numpy as np
 from scipy.signal import lfilter
 from config import DQNConfig
 from typers import *
@@ -18,6 +17,9 @@ class ReplayBuffer:
 
     def __len__(self):
         return len(self.data)
+
+    def reset(self):
+        self.data = []
 
     def finish_trajectory(self, seq: Trajectory, last_rewards: dict):
         # get rewards by color
