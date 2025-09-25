@@ -47,11 +47,12 @@ def point_wise_feed_forward_network(d_model, dff):
 
 def open_policy_map(policy):
     policy = policy.reshape((10, 10))
-    norm = np.exp(policy).sum()
+    max_policy = policy.max()
+    norm = np.exp(policy - max_policy).sum()
     open_policy = {}
     for i in range(10):
         for j in range(10):
-            open_policy[(i, j)] = np.exp(policy[i, j]) / norm
+            open_policy[(i, j)] = np.exp(policy[i, j] - max_policy) / norm
     return open_policy
 
 

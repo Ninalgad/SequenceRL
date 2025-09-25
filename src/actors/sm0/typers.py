@@ -1,4 +1,3 @@
-%%writefile /content/SequenceRL/src/actors/sm0/typers.py
 from typing import Any, Dict, Callable, List, NamedTuple, Tuple, Union, Optional, Sequence
 from typers import *
 import numpy as np
