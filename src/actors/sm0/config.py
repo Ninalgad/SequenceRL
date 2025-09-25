@@ -71,7 +71,7 @@ def sequence_sm0_config() -> StochasticMuZeroConfig:
 
     return StochasticMuZeroConfig(
         num_actors=1000,
-        num_simulations=1000,
+        num_simulations=20,
         discount=1.0,
         # Unused, we use adaptive dirichlet for backgammon.
         root_dirichlet_alpha=-1.0,

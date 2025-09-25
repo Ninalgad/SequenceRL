@@ -49,9 +49,6 @@ class StochasticMuZeroActor(Actor):
         # We add exploration noise to the root node.
         add_exploration_noise(self.config, root)
 
-        if self.training:
-            return self._fast_select_action(root, actions)
-
         # We then run a Monte Carlo Tree Search using only action sequences and the
         # model learned by the network.
         run_mcts(self.config, root, ActionOutcomeHistory(env.to_play()),
@@ -78,24 +75,6 @@ class StochasticMuZeroActor(Actor):
         search_policy = [v ** (1. / temperature) for v in visit_counts]
         norm = sum(search_policy)
         search_policy = [v / norm for v in search_policy]
-        loc = actions_loc[np.random.choice(len(actions_loc), p=search_policy)]
-        for act in actions:
-            if loc == (act.x, act.y):
-                return act
-        return None
-
-    def _fast_select_action(self, root, actions):
-        """Selects an action given the root node using only the priors."""
-        # Get the visit count distribution.
-        actions_loc, probs = zip(*[
-            (action, node.prior)
-            for action, node in root.children.items()
-        ])
-
-        # Compute the search policy.
-        search_policy = np.array(probs, "float32")
-        search_policy /= search_policy.sum()
-
         loc = actions_loc[np.random.choice(len(actions_loc), p=search_policy)]
         for act in actions:
             if loc == (act.x, act.y):
