@@ -68,10 +68,11 @@ class StochasticMuZeroAlgorithm(Algorithm):
         self.training_step += 1
 
         a = tf.keras.layers.Flatten()(action)
-        c_logits = self.model._encoder(board, vec)
-        c_tar = quantize_chance_logits(c_logits)
-        targets = {"c_tar": c_tar, "q_tar": tar, "a_tar": a}
         with tf.GradientTape() as tape:
+            c_logits = self.model._encoder(board, vec)
+            c_tar = quantize_chance_logits(c_logits)
+            targets = {"c_tar": c_tar, "q_tar": tar, "a_tar": a}
+
             state = self.model._representation(board, vec)[:1]
             loss_ = 0.0
             for i in range(5):
