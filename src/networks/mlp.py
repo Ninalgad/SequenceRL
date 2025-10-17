@@ -1,14 +1,18 @@
 import tensorflow as tf
+import numpy as np
 
 
 class MLPNetwork(tf.keras.Model):
-    def __init__(self, num_blocks=2, d_model=256, dff=256):
+    def __init__(self, num_blocks=3, d_model=512, dff=512):
         super(MLPNetwork, self).__init__()
 
-        self.patch_layer = tf.keras.layers.Conv2D(d_model, 2, strides=2)
         self.emb = tf.keras.layers.Dense(d_model)
         self.encoder_layers = [EncoderLayer(d_model, dff) for _ in range(num_blocks)]
         self.final_layer = point_wise_feed_forward_network(1, dff)
+
+    def build(self):
+        self.call(np.zeros((1, 10, 10, 2)), np.zeros((1, 10, 10)),
+                  np.zeros((1, 178)))
 
     @staticmethod
     def preprocess_inp(b, a, v):

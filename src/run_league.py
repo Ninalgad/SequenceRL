@@ -1,9 +1,7 @@
-import pickle
 import click
 import os
 import json
 from tqdm import tqdm
-from IPython import display
 
 from actor import Actor
 from replay import ReplayBuffer
@@ -27,20 +25,24 @@ def run_n_selfplay(
         env = SequenceGameEnv()
         episode = []
 
-        i = 0
-        while (not env.is_terminal()) and (i < max_turns):
-            legal_actions = env.legal_actions()
-            action = actor.select_action(env, legal_actions)
+        try:
+            i = 0
+            while (not env.is_terminal()) and (i < max_turns):
+                legal_actions = env.legal_actions()
 
-            state = State(
-                observation=env.observation(),
-                reward=env.reward(env.to_play()),
-                player=env.to_play(),
-                action=action
-            )
-            episode.append(state)
-            env.apply(action)
-            i += 1
+                action = actor.select_action(env, legal_actions)
+
+                state = State(
+                    observation=env.observation(),
+                    reward=env.reward(env.to_play()),
+                    player=env.to_play(),
+                    action=action
+                )
+                episode.append(state)
+                env.apply(action)
+                i += 1
+        except (IndexError, ValueError):
+            continue
 
         # get rewards for win/loss
         last_rewards = {c: env.reward(c) for c in Color.get_players()}
@@ -52,7 +54,8 @@ def run_n_selfplay(
 def run_n_leagueplay(
         n: int, league: League,
         replay_buffer: ReplayBuffer, max_turns: int = 1000):
-    for _ in range(n):
+    n = max(n, 2)
+    for j in range(n):
         a_id, b_id = league.matchmake()
         actors = [league.players[a_id].actor, league.players[b_id].actor]
 
@@ -60,21 +63,24 @@ def run_n_leagueplay(
         env = SequenceGameEnv()
         episode = []
 
-        i = 0
-        while (not env.is_terminal()) and (i < max_turns):
-            legal_actions = env.legal_actions()
-            actor = actors[i % 2]
-            action = actor.select_action(env, legal_actions)
+        try:
+            i = 0
+            while (not env.is_terminal()) and (i < max_turns):
+                legal_actions = env.legal_actions()
+                actor = actors[i % 2]
+                action = actor.select_action(env, legal_actions)
 
-            state = State(
-                observation=env.observation(),
-                reward=env.reward(env.to_play()),
-                player=env.to_play(),
-                action=action
-            )
-            episode.append(state)
-            env.apply(action)
-            i += 1
+                state = State(
+                    observation=env.observation(),
+                    reward=env.reward(env.to_play()),
+                    player=env.to_play(),
+                    action=action
+                )
+                episode.append(state)
+                env.apply(action)
+                i += 1
+        except (IndexError, ValueError):
+            continue
 
         # get rewards for win/loss
         last_rewards = {c: env.reward(c) for c in Color.get_players()}

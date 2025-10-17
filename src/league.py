@@ -1,6 +1,7 @@
 from scipy.special import softmax
 import numpy as np
 import json
+import heapq
 
 
 def update_elo(winner_elo, loser_elo, k_factor=64, elo_width=400):
@@ -33,26 +34,41 @@ class Player:
         self.num_games += 1
 
 
+def _scale_rating(r, mean, std):
+    return 1.2 * (r - mean) / (std + 1e-10)
+
+
 class League:
     def __init__(self, init_rating=800, elo_width=400):
         self.players = {}
         self.init_rating = init_rating
         self.elo_width = elo_width
+        self.newest = None
 
     def matchmake(self):
-        pool = list(self.players.keys())
-        weights = np.array([self.players[p].num_games for p in pool])
-        p = softmax(0.1 * (10 - weights))
-        plyr_a = np.random.choice(pool, p=p).item()
-        rating_a = self.players[plyr_a].rating
+        # max_rating = self.players[self.best()].rating
+        # min_rating = self.players[self.worst()].rating
+        ratings = [p.rating for p in self.players.values()]
+        m, s = np.mean(ratings), np.std(ratings)
 
-        pool = [p for p in pool if (p != plyr_a)]
-        ratings = np.array([self.players[p].rating for p in pool])
-        weights = np.abs(ratings - rating_a) < (self.elo_width / 2)
-        weights = 5 * weights.astype('float32')
-        p = softmax(weights)
-        plyr_b = np.random.choice(pool, p=p).item()
+        # [0-5]
+        player2weight = {k: _scale_rating(v.rating, m, s)
+                         for k, v in self.players.items()}
 
+        if self.newest in self.players:
+            # 10 placement games for the latest player (against the best players)
+            if self.players[self.newest].num_games < 10:
+                player2weight[self.newest] = 100
+            else:
+                player2weight[self.newest] += 1
+
+        # add noise
+        player2weight = {k: v + np.random.gumbel() for k, v in player2weight.items()}
+
+        # select top 2 by weight
+        plyr_a, plyr_b = heapq.nlargest(2, player2weight, key=player2weight.get)
+
+        # randomly set order
         if np.random.uniform() < 0.5:
             return plyr_b, plyr_a
         return plyr_a, plyr_b
@@ -65,26 +81,23 @@ class League:
 
     def register(self, actor, player_id):
         self.players[player_id] = Player(actor=actor, rating=self.init_rating)
+        self.newest = player_id
 
     def best(self):
-        best_rating = -np.inf
-        best_player = ""
-        for k, p in self.players.items():
-            r = p.rating
-            if r > best_rating:
-                best_rating = r
-                best_player = k
-        return best_player
+        if len(self.players):
+            return max(self.players, key=lambda x: self.players[x].rating)
+        return None
 
-    def worst(self, min_games=10):
-        worst_rating = np.inf
-        worst_player = ""
-        for k, p in self.players.items():
-            r = p.rating
-            if (r < worst_rating) and (p.num_games > min_games):
-                worst_rating = r
-                worst_player = k
-        return worst_player
+    def worst(self):
+        def _worst_not_newest(x):
+            r = self.players[x].rating
+            if x == self.newest:
+                r = np.inf
+            return r
+
+        if len(self.players):
+            return min(self.players, key=_worst_not_newest)
+        return None
 
     def newest(self):
         if not len(self.players):
@@ -94,20 +107,20 @@ class League:
 
     def __str__(self):
         def _significance(n):
-            s = ""
+            sig = ""
             if n > 10000:
-                s = "***"
+                sig = "***"
             elif n > 1000:
-                s = "**"
+                sig = "**"
             elif n > 100:
-                s = "*"
-            return s
+                sig = "*"
+            return sig
 
         pool = list(self.players.keys())
         ratings = [int(self.players[p].rating) for p in pool]
         games = [int(self.players[p].num_games) for p in pool]
         idx = np.argsort(ratings)[::-1]
-        newest = self.newest()
+        newest = self.newest
         s = ""
         for i in idx:
             p = pool[i]

@@ -22,8 +22,7 @@ class DQNAlgorithm(Algorithm):
         super(DQNAlgorithm, self).__init__(init_model=init_model, learning_rate=learning_rate)
 
     def build(self):
-        self.model(np.zeros((1, 10, 10, 2)), np.zeros((1, 10, 10)),
-                   np.zeros((1, 178)))
+        self.model.build()
 
     @tf.function(input_signature=TRAIN_STEP_SIGNATURE)
     def train_step(self, board, vec, action, tar):
